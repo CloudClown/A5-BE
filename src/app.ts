@@ -20,7 +20,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors({
-  origin: config.corsOrigin,
+  origin: '*', // Allow all origins until frontend is ready
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -55,9 +55,11 @@ app.use('/api/v1/admin', adminRoutes);
 
 app.get('/', (req: Request, res: Response) => {
   res.status(200).json({
-    message: 'Welcome To digital-wallet API',
+    message: 'Welcome To digital-wallet API'
   });
 });
+
+
 
 // Error handling
 app.use(errorHandler);
