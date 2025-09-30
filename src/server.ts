@@ -3,6 +3,8 @@ import { app } from './app';
 import { config } from './app/config/env';
 import { seedAdminUser } from './app/utils/seedAdmin';
 
+const port = process.env.PORT || 8080;
+
 const startServer = async () => {
   try {
     // Connect to MongoDB
@@ -13,8 +15,8 @@ const startServer = async () => {
     await seedAdminUser();
 
     // Start the server
-    app.listen(config.port, () => {
-      console.log(`Server is running on port ${config.port}`);
+    app.listen(port, () => {
+      console.log(`Server is running on port ${port}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);
