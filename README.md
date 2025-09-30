@@ -4,16 +4,41 @@ A secure, modular, role-based backend API for a digital wallet system using Expr
 
 ## Features
 
-- 🔐 JWT-based Authentication
-- 👥 Role-based Authorization (User, Agent, Admin)
-- 💰 Wallet Management
-- 💸 Transaction Processing
+Authentication & Security:
+- 🔐 JWT-based Authentication with Refresh Tokens
+- 🌐 Google OAuth Integration
+- �️ Secure Password Handling with bcrypt
+- �👥 Role-based Authorization (User, Agent, Admin)
+- � HTTP-only Cookie Session Management
+
+Wallet System:
+- 💰 Automatic Wallet Creation
+- 💸 Transaction Processing with Fees
+- 🔄 Real-time Balance Updates
+- ⚖️ Minimum Balance Enforcement
+- 🚫 Wallet Blocking System
+
+Transaction Features:
+- 💳 Deposit & Withdrawal
+- 📤 Money Transfer Between Users
 - 🏦 Agent Cash In/Out Support
 - 💵 Transaction Fees & Commission System
-- 🔄 Real-time Balance Updates
-- 📊 Transaction History
-- 🛡️ Secure Password Handling
-- 🌐 Google OAuth Integration
+- � Transaction History & Filtering
+
+Admin Controls:
+- 👑 Super Admin Auto-seeding
+- 👥 User Role Management
+- 💼 Wallet Management
+- � Transaction Monitoring
+- � Account Blocking
+
+Technical Features:
+- 🗃️ MongoDB with Mongoose
+- 🔍 Request Validation with Zod
+- 📝 Comprehensive Error Handling
+- 🔄 Async/Await Pattern
+- 📊 Request Logging
+- 🚦 Rate Limiting
 
 ## Prerequisites
 
@@ -38,14 +63,18 @@ A secure, modular, role-based backend API for a digital wallet system using Expr
    Create a `.env` file in the root directory and add the following:
    ```env
    # Server Configuration
-   PORT=5000
-   DB_URL=your_mongodb_connection_string
    NODE_ENV=development
+   PORT=5000
+   CORS_ORIGIN=http://localhost:5173
+   API_PREFIX=/api/v1
 
    # Super Admin Configuration (Required for initial setup)
    SUPER_ADMIN_NAME=Super Admin
    SUPER_ADMIN_EMAIL=admin@digitalwallet.com
    SUPER_ADMIN_PASSWORD=your_secure_password
+
+   # Database
+   DB_URL=your_mongodb_connection_string
 
    # JWT Configuration
    JWT_SECRET=your_jwt_secret
@@ -53,13 +82,36 @@ A secure, modular, role-based backend API for a digital wallet system using Expr
    JWT_REFRESH_SECRET=your_refresh_token_secret
    JWT_REFRESH_EXPIRES=30d
 
+   # Bcrypt
+   BCRYPT_SALT_ROUND=10
+
    # Wallet Configuration
    INITIAL_BALANCE_CENTS=5000
+   MINIMUM_BALANCE=0
+   WITHDRAWAL_FEE_PERCENTAGE=1.5
+   TRANSFER_FEE_PERCENTAGE=1.0
+   CASH_OUT_FEE_PERCENTAGE=2.0
+   AGENT_COMMISSION_PERCENTAGE=1.0
+   DAILY_TRANSACTION_LIMIT=50000
+   MONTHLY_TRANSACTION_LIMIT=1000000
 
    # Google OAuth (Optional)
    GOOGLE_CLIENT_ID=your_google_client_id
    GOOGLE_CLIENT_SECRET=your_google_client_secret
    GOOGLE_CALLBACK_URL=http://localhost:5000/api/v1/auth/google/callback
+
+   # Session (for OAuth)
+   EXPRESS_SESSION_SECRET=your_session_secret
+   SESSION_MAX_AGE=86400000
+
+   # Frontend URLs
+   FRONTEND_URL=http://localhost:5173
+   FRONTEND_RESET_PASSWORD_URL=/reset-password
+   FRONTEND_EMAIL_VERIFY_URL=/verify-email
+
+   # Logging
+   LOG_LEVEL=debug
+   ENABLE_REQUEST_LOGGING=true
    ```
 
 4. **Start the server**
@@ -91,6 +143,19 @@ After the first admin is created, new admin users can only be created by:
 ## API Endpoints
 
 ### Authentication
+
+#### Google OAuth Login
+- **GET** `/api/v1/auth/google`
+  - Initiates Google OAuth login flow
+  - Redirects to Google login page
+
+#### Google OAuth Callback
+- **GET** `/api/v1/auth/google/callback`
+  - Handles Google OAuth callback
+  - Creates user account if first time login
+  - Creates wallet for new users
+  - Sets refresh token in HTTP-only cookie
+  - Redirects to frontend with access token
 
 #### Register a new user
 - **POST** `/api/v1/auth/register`
@@ -231,19 +296,28 @@ After the first admin is created, new admin users can only be created by:
 ## Business Rules
 
 1. **Balance Restrictions**
+   - Initial wallet balance: 5000 cents
+   - Minimum balance: 0 cents
    - Cannot withdraw or send more than available balance
-   - Minimum balance requirement enforced
    - Blocked wallets cannot perform transactions
 
 2. **Fees & Commissions**
    - Withdrawal Fee: 1.5%
-   - Transfer Fee: 1%
-   - Cash-out Fee: 2%
-   - Agent Commission: 1%
+   - Transfer Fee: 1.0%
+   - Cash-out Fee: 2.0%
+   - Agent Commission: 1.0%
 
 3. **Transaction Limits**
-   - Daily limit: 50,000
-   - Monthly limit: 1,000,000
+   - Daily Transaction Limit: 50,000
+   - Monthly Transaction Limit: 1,000,000
+
+4. **Security**
+   - JWT access tokens with 7-day expiry
+   - JWT refresh tokens with 30-day expiry
+   - HTTP-only cookies for refresh tokens
+   - Password hashing with bcrypt (10 rounds)
+   - Role-based access control
+   - Rate limiting and request logging
 
 ## Testing with Postman
 
@@ -261,13 +335,51 @@ After the first admin is created, new admin users can only be created by:
 ## Error Handling
 
 The API returns consistent error responses in the following format:
+
+### Validation Errors
 ```json
 {
   "success": false,
-  "message": "Error message here",
+  "message": "Validation failed",
   "error": {
-    "details": "Detailed error information"
-  }
+    "issues": [
+      {
+        "code": "invalid_type",
+        "expected": "number",
+        "received": "string",
+        "path": ["body", "amount"],
+        "message": "Amount must be a number"
+      }
+    ]
+  },
+  "statusCode": 400
+}
+```
+
+### Authentication Errors
+```json
+{
+  "success": false,
+  "message": "Invalid credentials",
+  "statusCode": 401
+}
+```
+
+### Authorization Errors
+```json
+{
+  "success": false,
+  "message": "You are not authorized to access this resource",
+  "statusCode": 403
+}
+```
+
+### Business Logic Errors
+```json
+{
+  "success": false,
+  "message": "Insufficient balance for withdrawal",
+  "statusCode": 400
 }
 ```
 

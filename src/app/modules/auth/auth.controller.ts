@@ -1,7 +1,16 @@
 import { Request, Response } from 'express';
+import { IUser } from '../../models/user.model';
 import { catchAsync } from '../../utils/catchAsync';
 import { sendResponse } from '../../utils/apiResponse';
 import { AuthService } from './auth.service';
+import { config } from '../../config/env';
+
+// Extend express Request type to include user
+declare module 'express-serve-static-core' {
+  interface Request {
+    user?: IUser;
+  }
+}
 
 export class AuthController {
   constructor(private authService: AuthService) {}
@@ -22,7 +31,7 @@ export class AuthController {
     // Set refresh token in HTTP-only cookie
     res.cookie('refreshToken', tokens.refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: config.env === 'production',
       sameSite: 'strict',
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     });
@@ -53,6 +62,26 @@ export class AuthController {
       success: true,
       data: { accessToken },
     });
+  });
+
+  googleCallback = catchAsync(async (req: Request, res: Response) => {
+    if (!req.user) {
+      return res.redirect(`${config.frontend.url}/login?error=auth-failed`);
+    }
+
+    const authTokens = await this.authService.generateAuthTokens(req.user);
+    const { tokens } = authTokens;
+
+    // Set refresh token in HTTP-only cookie
+    res.cookie('refreshToken', tokens.refreshToken, {
+      httpOnly: true,
+      secure: config.env === 'production',
+      sameSite: 'strict',
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    });
+
+    // Redirect to frontend with access token
+    res.redirect(`${config.frontend.url}?token=${tokens.accessToken}`);
   });
 }
 

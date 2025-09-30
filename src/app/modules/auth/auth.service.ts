@@ -41,11 +41,10 @@ export class AuthService {
       throw new Error('Your account has been blocked');
     }
 
-    const tokens = this.generateAuthTokens(user._id);
-
     // Remove password from response
     const userWithoutPassword = user.toJSON();
-    return { tokens, user: userWithoutPassword };
+
+    return this.generateAuthTokens(userWithoutPassword);
   }
 
   async refreshToken(refreshToken: string) {
@@ -61,11 +60,13 @@ export class AuthService {
     }
   }
 
-  private generateAuthTokens(userId: string) {
-    return {
-      accessToken: generateToken({ id: userId }),
-      refreshToken: generateRefreshToken({ id: userId }),
+  generateAuthTokens(user: any) {
+    const tokens = {
+      accessToken: generateToken({ id: user._id }),
+      refreshToken: generateRefreshToken({ id: user._id }),
     };
+
+    return { tokens, user };
   }
 
   private async verifyRefreshToken(token: string) {

@@ -7,18 +7,40 @@ export class TransactionController {
   constructor(private transactionService: TransactionService) {}
 
   getTransactionHistory = catchAsync(async (req: Request, res: Response) => {
+    if (!req.user || !req.user.id) {
+      return sendResponse(res, {
+        success: false,
+        message: 'User not authenticated',
+        data: null,
+      });
+    }
     const transactions = await this.transactionService.getTransactionHistory(
       req.user.id,
       req.query
     );
 
-    sendResponse(res, {
-      success: true,
-      data: transactions,
-    });
+    if (!req.user || !req.user.id) {
+      return sendResponse(res, {
+        success: false,
+        message: 'User not authenticated',
+        data: null,
+      });
+    }
+    const transaction = await this.transactionService.getTransactionDetails(
+      req.params.id,
+      req.user.id
+    );
   });
 
   getTransactionDetails = catchAsync(async (req: Request, res: Response) => {
+    if (!req.user || !req.user.id) {
+      return sendResponse(res, {
+        success: false,
+        message: 'User not authenticated',
+        data: null,
+      });
+    }
+
     const transaction = await this.transactionService.getTransactionDetails(
       req.params.id,
       req.user.id

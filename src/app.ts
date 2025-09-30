@@ -1,10 +1,13 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import session from 'express-session';
+import passport from 'passport';
 import 'express-async-errors';
 
 import { config } from './app/config/env';
 import { errorHandler } from './app/middlewares/error.middleware';
+import './app/config/passport';
 import { authRoutes } from './app/modules/auth/auth.routes';
 import { userRoutes } from './app/modules/user/user.routes';
 import { walletRoutes } from './app/modules/wallet/wallet.routes';
@@ -17,10 +20,24 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
+  origin: config.corsOrigin,
   credentials: true,
 }));
 app.use(cookieParser());
+
+// Session middleware for Passport
+app.use(session({
+  secret: config.session.secret || 'your-session-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: config.env === 'production',
+    maxAge: config.session.maxAge,
+  },
+}));
+
+// Initialize Passport
+app.use(passport.initialize());
 
 // Routes
 app.use('/api/v1/auth', authRoutes);

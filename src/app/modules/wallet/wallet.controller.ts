@@ -8,7 +8,9 @@ export class WalletController {
 
   deposit = catchAsync(async (req: Request, res: Response) => {
     const { amount } = req.body;
-    const transaction = await this.walletService.deposit(req.user.id, amount);
+    if (!req.user?._id) throw new Error('User not authenticated');
+
+    const transaction = await this.walletService.deposit(req.user._id.toString(), amount);
 
     sendResponse(res, {
       success: true,
@@ -19,7 +21,9 @@ export class WalletController {
 
   withdraw = catchAsync(async (req: Request, res: Response) => {
     const { amount } = req.body;
-    const transaction = await this.walletService.withdraw(req.user.id, amount);
+    if (!req.user?._id) throw new Error('User not authenticated');
+
+    const transaction = await this.walletService.withdraw(req.user._id.toString(), amount);
 
     sendResponse(res, {
       success: true,
@@ -30,8 +34,10 @@ export class WalletController {
 
   send = catchAsync(async (req: Request, res: Response) => {
     const { amount, recipientId } = req.body;
+    if (!req.user?._id) throw new Error('User not authenticated');
+
     const transaction = await this.walletService.sendMoney(
-      req.user.id,
+      req.user._id.toString(),
       recipientId,
       amount
     );
